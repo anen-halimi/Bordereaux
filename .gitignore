@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pkl
+*.log
+*.zip
+*.ipynb_checkpoints
+.env
+.DS_Store
+*.mp4
+*.csv

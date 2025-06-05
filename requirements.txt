@@ -1,0 +1,11 @@
+pandas
+openpyxl
+pdfplumber
+pytesseract
+pdf2image
+opencv-python
+numpy
+tk
+
+
+

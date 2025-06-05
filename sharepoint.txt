@@ -1,0 +1,289 @@
+let
+
+    // Fonction compatible Power Query pour supprimer les accents
+
+    SupprimerAccents = (texte as text) as text =>
+
+        let
+
+            txt = Text.Upper(texte),
+
+            t1 = Text.Replace(txt, "É", "E"),
+
+            t2 = Text.Replace(t1, "È", "E"),
+
+            t3 = Text.Replace(t2, "Ê", "E"),
+
+            t4 = Text.Replace(t3, "Ë", "E"),
+
+            t5 = Text.Replace(t4, "À", "A"),
+
+            t6 = Text.Replace(t5, "Â", "A"),
+
+            t7 = Text.Replace(t6, "Ä", "A"),
+
+            t8 = Text.Replace(t7, "Ô", "O"),
+
+            t9 = Text.Replace(t8, "Ö", "O"),
+
+            t10 = Text.Replace(t9, "Û", "U"),
+
+            t11 = Text.Replace(t10, "Ü", "U"),
+
+            t12 = Text.Replace(t11, "Î", "I"),
+
+            t13 = Text.Replace(t12, "Ï", "I"),
+
+            t14 = Text.Replace(t13, "Ç", "C")
+
+        in
+
+            t14,
+
+
+
+    // 1. Charger le fichier Excel depuis SharePoint
+
+    Source = SharePoint.Files("https://sncf.sharepoint.com/sites/METEOR_Power_BIGrpO365", [ApiVersion = 15]),
+
+    #"Fichiers masqués filtrés" = Table.SelectRows(Source, each [Attributes]?[Hidden]? <> true),
+
+    #"Fichiers filtrés" = Table.SelectRows(#"Fichiers masqués filtrés", each Text.Contains([Name], "Résumé_Global_Complet.xlsx")),
+
+    #"Fichier transformé" = Table.AddColumn(#"Fichiers filtrés", "Données transformées", each Excel.Workbook([Content], null, true)),
+
+    #"Colonnes renommées fichier" = Table.RenameColumns(#"Fichier transformé", {{"Name", "Source.Name"}}),
+
+    #"Colonnes sélectionnées" = Table.SelectColumns(#"Colonnes renommées fichier", {"Source.Name", "Données transformées"}),
+
+
+
+    // 2. Extraire la feuille "Sheet1"
+
+    #"Feuille extraite" = Table.AddColumn(#"Colonnes sélectionnées", "Feuille Sheet1", each [Données transformées]{[Item="Sheet1", Kind="Sheet"]}[Data]),
+
+    #"Feuille sélectionnée" = Table.SelectColumns(#"Feuille extraite", {"Feuille Sheet1"}),
+
+    DonnéesBrutes = #"Feuille sélectionnée"{0}[Feuille Sheet1],
+
+
+
+    // 3. Promouvoir les en-têtes
+
+    #"En-têtes promus" = Table.PromoteHeaders(DonnéesBrutes, [PromoteAllScalars=true]),
+
+
+
+    // 4. Dupliquer la colonne "Nom du programme"
+
+    #"Nom du programme original" = Table.DuplicateColumn(#"En-têtes promus", "Nom du programme", "Nom du programme original"),
+
+
+
+    // 5. Nettoyer la colonne "Valeur de la mesure"
+
+    #"Valeur nettoyée" = Table.TransformColumns(#"Nom du programme original", {
+
+        {"Valeur de la mesure", each Text.Replace(Text.Clean(Text.Trim(_)), ",", "."), type text}
+
+    }),
+
+
+
+    // 6. Supprimer les caractères invisibles
+
+    #"Valeur corrigée" = Table.TransformColumns(#"Valeur nettoyée", {
+
+        {"Valeur de la mesure", each Text.Replace(Text.Replace(_, Character.FromNumber(160), ""), " ", " "), type text}
+
+    }),
+
+
+
+    // 7. Extraire uniquement chiffres, point, tiret
+
+    #"Texte extrait" = Table.AddColumn(#"Valeur corrigée", "Texte extrait",
+
+        each Text.Select([Valeur de la mesure], {"0".."9", ".", "-"}), type text),
+
+
+
+    // 8. Convertir en nombre avec gestion des erreurs
+
+    #"Valeur numérique" = Table.AddColumn(#"Texte extrait", "Valeur numérique",
+
+        each try Value.FromText([Texte extrait], "en-US") otherwise null, type nullable number),
+
+
+
+    // 9. Extraire l’unité (lettres uniquement)
+
+    #"Unité extraite" = Table.AddColumn(#"Valeur numérique", "Unité",
+
+        each Text.Select([Valeur de la mesure], {"A".."Z", "a".."z"}), type text),
+
+
+
+    // 10. Créer colonnes Valeur Bar / Seconde
+
+    #"Valeur Bar" = Table.AddColumn(#"Unité extraite", "Valeur Bar",
+
+        each if Text.Lower([Unité]) = "bar" then [Valeur numérique] else null, type nullable number),
+
+    #"Valeur Seconde" = Table.AddColumn(#"Valeur Bar", "Valeur Seconde",
+
+        each if Text.Lower([Unité]) = "s" then [Valeur numérique] else null, type nullable number),
+
+
+
+    // 11. Remplacer nulls par 0
+
+    #"Nulls remplacés" = Table.TransformColumns(#"Valeur Seconde", {
+
+        {"Valeur Bar", each if _ = null then 0 else _, type number},
+
+        {"Valeur Seconde", each if _ = null then 0 else _, type number}
+
+    }),
+
+
+
+    // 12. Extraire la Série
+
+    sériesPossibles = {"6 caisses", "7 caisses", "8 caisses", "10 caisses", "10 caisses ONO"},
+
+    #"Série extraite" = Table.AddColumn(#"Nulls remplacés", "Série", each try List.First(List.Select(sériesPossibles, (mot) => Text.Contains([Nom du programme original], mot))) otherwise null, type text),
+
+
+
+    // 13. Extraire les modules
+
+    modulesValides = {"MSAJ5", "MSAJ6", "MSAJ7"},
+
+    #"Nom module" = Table.AddColumn(#"Série extraite", "Nom du module", each
+
+        Text.Combine(
+
+            List.Select(modulesValides, (mod) => Text.Contains([Nom du programme original], mod)),
+
+            "_"
+
+        ), type text),
+
+
+
+    // 14. Extraire le site
+
+    codesSites = {"AS", "BX", "COE", "LL", "MG", "AMC", "TE", "VSX", "SO", "NB", "ORL", "NSR", "MB", "VSG"},
+
+    #"Site extrait" = Table.AddColumn(#"Nom module", "Site", each
+
+        try List.First(List.Select(codesSites, (code) => Text.Contains([Nom du programme original], code))) otherwise null, type text),
+
+
+
+    // 15. Ajouter la ville
+
+    siteVersVille = [
+
+        AS = "Amiens", BX = "Bordeaux", COE = "Corbeil-essonnes", LL = "Le Landy",
+
+        MG = "Montrouge V24", AMC = "Chatillon - Montrouge", TE = "Toulouse",
+
+        VSX = "Vénissieux", SO = "Sotteville", NB = "Nantes", ORL = "Orléans",
+
+        NSR = "Nice St Roch", MB = "Marseille", VSG = "Villeneuve"
+
+    ],
+
+    #"Ville ajoutée" = Table.AddColumn(#"Site extrait", "Ville", each Record.FieldOrDefault(siteVersVille, [Site], null), type text),
+
+
+
+    // 16. Supprimer colonne temporaire
+
+    #"Colonnes nettoyées" = Table.RemoveColumns(#"Ville ajoutée", {"Texte extrait"}),
+
+
+
+    // 17. Ajouter un index
+
+    #"Index ajouté" = Table.AddIndexColumn(#"Colonnes nettoyées", "YMesure", 1, 1, Int64.Type),
+
+
+
+    // 18. Créer colonne de regroupement "Nom groupe"
+
+    #"Nom groupé" = Table.AddColumn(#"Index ajouté", "Nom groupe", each
+
+        let nom = SupprimerAccents(Text.Trim([#"Nom de l'essai"])),
+
+            contientRA = List.AnyTrue(List.Transform({"RA FEM", "RA-FEM", "RA ET RA-FEM", "RA"}, each Text.Contains(nom, _)))
+
+        in
+
+            if Text.Contains(nom, "TPS") and Text.Contains(nom, "FU") and Text.Contains(nom, "MP(TT-F)") then "TPS S/D : FU par MP(TT-F)" else
+
+            if Text.Contains(nom, "TPS") and Text.Contains(nom, "BP") and Text.Contains(nom, "PNEU") then "TPS S/D : FU pneu par BP(URG)" else
+
+            if Text.Contains(nom, "TPS") and Text.Contains(nom, "MDS") and Text.Contains(nom, "MP(TT-F)") then "TPS S/D : MDS par MP(TT-F)" else
+
+            if Text.Contains(nom, "TPS") and Text.Contains(nom, "FU") and Text.Contains(nom, "MEU") then "TPS S/D : FU électropneu par MEU" else
+
+            if Text.Contains(nom, "BP") and Text.Contains(nom, "URG") then "BP(URG)" else
+
+            if Text.Contains(nom, "DET.SH") or Text.Contains(nom, "ESSAI SH") then "Dettendeur SH" else
+
+            if Text.Contains(nom, "FEM") and not Text.Contains(nom, "RB") and not Text.Contains(nom, "FP") then "Detendeur FEM" else
+
+            if Text.Contains(nom, "DETENDEUR") and Text.Contains(nom, "FP") then "Détendeur FP" else
+
+            if Text.Contains(nom, "ESSAIS") and Text.Contains(nom, "RB") then "Essai RB MA(RA)FEM" else
+
+            if Text.Contains(nom, "ETANCH") and Text.Contains(nom, "CP") and Text.Contains(nom, "CG") then "Etanchéité CP-CG" else
+
+            if Text.Contains(nom, "ETANCH") and contientRA then "Etanchéité des RA et RA-FEM" else
+
+            if Text.Contains(nom, "IBU") and Text.Contains(nom, "CAPTEUR") then "IBU(capteurs)" else
+
+            if Text.Contains(nom, "IBU") and Text.Contains(nom, "BME") then "IBU(BME)" else
+
+            if Text.Contains(nom, "IBU") and Text.Contains(nom, "BPI") then "IBU(BPI)" else
+
+            if Text.Contains(nom, "IBU") and Text.Contains(nom, "BMI") then "IBU(BMI)" else
+
+            if Text.Contains(nom, "MA(PRD") then "MA(PRD)" else
+
+            if Text.Contains(nom, "MA(URG") and Text.Contains(nom, "CG") then "MA(URG)CG" else
+
+            if Text.Contains(nom, "MA(URG") and Text.Contains(nom, "CP") then "MA(URG)CP" else
+
+            if Text.Contains(nom, "OPERATIONS") and Text.Contains(nom, "LIBERATOIRES") then "opérations liberatoires" else
+
+            if Text.Contains(nom, "PREPA") and Text.Contains(nom, "ESSAIS") then "PREPA DES ESSAIS" else
+
+            if Text.Contains(nom, "RM") and Text.Contains(nom, "MINITROL") then "RM Minitrol" else
+
+            [#"Nom de l'essai"], type text),
+
+
+
+    // 19. Réorganiser les colonnes
+
+    #"Colonnes permutées" = Table.ReorderColumns(#"Nom groupé",{
+
+        "Nom du programme", "Rédacteur", "Date d'essai", "Numéro rame", "Numéro du poste", "Date GVG du poste",
+
+        "Numéro d'essai", "Nom de l'essai", "Nom groupe", "Nombre de réalisation", "Nom de la mesure", 
+
+        "Valeur de la mesure", "Source PDF", "Nom du programme original", "Valeur numérique", 
+
+        "Unité", "Valeur Bar", "Valeur Seconde", "Série", "Nom du module", "Site", "Ville", "YMesure"
+
+    })
+
+
+
+in
+
+    #"Colonnes permutées"
