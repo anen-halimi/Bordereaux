@@ -526,7 +526,7 @@ def extract_essais_and_mesures_from_titles(ws):
 
 
 
-def create_global_summary(extracted_excel_path):
+def create_global_summary(extracted_excel_path, log_func=print):
     from openpyxl import load_workbook
     from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
     import re

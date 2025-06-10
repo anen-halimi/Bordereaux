@@ -690,7 +690,7 @@ def process_all_pdfs_in_folder_with_logs_sequentiel(pdf_folder, log_func=print):
     import pandas as pd
     output_dir = os.path.join(pdf_folder, "outputs")
     os.makedirs(output_dir, exist_ok=True)
-
+    
     for file in os.listdir(pdf_folder):
         if file.endswith(".pdf"):
             pdf_path = os.path.join(pdf_folder, file)

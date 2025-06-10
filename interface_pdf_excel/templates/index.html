@@ -1,83 +1,170 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="light transition-all duration-500">
 <head>
   <meta charset="UTF-8">
-  <title>Interface Traitement PDF & Excel</title>
+  <title>Interface de Traitement PDF & Excel</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    };
+  </script>
 </head>
-<body class="bg-gray-100 text-gray-800">
-
-  <header class="bg-blue-900 text-white py-6 shadow">
-    <h1 class="text-3xl font-bold text-center">🚆 Interface de Traitement des Fichiers PDF & Excel</h1>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-500">
+  <!-- Header -->
+  <header class="bg-blue-900 text-white py-6 px-4 text-center shadow-md">
+    <h1 class="text-3xl font-bold">🚆 Interface de Traitement des Fichiers PDF & Excel</h1>
+    <button onclick="toggleTheme()" id="theme-toggle" class="mt-3 px-4 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white transition">
+      🌓 Mode sombre
+    </button>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-10">
+  <!-- Hero Section -->
+  <section class="bg-white dark:bg-gray-800 p-6 rounded shadow-md my-6 max-w-4xl mx-auto text-center">
+    <p class="text-lg font-medium">Bienvenue sur votre outil de traitement automatique des fichiers PDF et Excel !</p>
+    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Choisissez un mode de traitement et suivez l’avancement via le journal interactif.</p>
+  </section>
+
+  <main class="max-w-4xl mx-auto p-6">
     {% if message %}
-    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded">
-      <strong>{{ message }}</strong>
+    <div class="mb-6 p-4 rounded border-l-4 bg-green-100 border-green-500 text-green-900">
+      ✅ {{ message }}
     </div>
     {% endif %}
 
-    <section class="mb-12">
-      <h2 class="text-xl font-semibold text-blue-900 mb-4">1️⃣ Traitement Séquentiel des PDFs</h2>
-      <form action="/process_sequentiel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
-        <label class="block font-medium">Sélectionnez un dossier contenant les fichiers PDF :</label>
-        <input type="file" name="pdf_folder" webkitdirectory directory multiple required class="mt-2 mb-4 block w-full">
-        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded">▶️ Lancer le traitement séquentiel</button>
-      </form>
-    </section>
-
-    <section class="mb-12">
-      <h2 class="text-xl font-semibold text-blue-900 mb-4">2️⃣ Traitement Parallèle des PDFs</h2>
-      <form action="/process_parallel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
-        <label class="block font-medium">Sélectionnez un dossier contenant les fichiers PDF :</label>
-        <input type="file" name="pdf_folder" webkitdirectory directory multiple required class="mt-2 mb-4 block w-full">
-        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded">⚙️ Lancer le traitement parallèle</button>
-      </form>
-    </section>
-
-    <section class="mb-12">
-      <h2 class="text-xl font-semibold text-blue-900 mb-4">3️⃣ Enrichissement Excel</h2>
-
-      <form action="/enrichir_global_excel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow mb-6">
-        <label class="block font-medium">Fichier pour enrichissement global :</label>
-        <input type="file" name="global_excel" accept=".xlsx" required class="mt-2 mb-4 block w-full">
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">📥 Générer résultat_complet.xlsx</button>
-      </form>
-
-      <form action="/enrichir_par_annee_excel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
-        <label class="block font-medium">Fichier pour enrichissement par année :</label>
-        <input type="file" name="global_excel" accept=".xlsx" required class="mt-2 mb-4 block w-full">
-        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">📂 Générer data_{année}.xlsx</button>
-      </form>
-    </section>
-
+    <!-- Traitement Séquentiel -->
     <section>
-      <h2 class="text-xl font-semibold text-blue-900 mb-4">📝 Journal du traitement</h2>
-      <pre id="log-output" class="bg-black text-green-200 p-4 rounded h-72 overflow-y-auto"><code></code></pre>
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">1️⃣ <span>Traitement Séquentiel des PDFs</span></h2>
+      <form action="/process_sequentiel" method="post" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
+        <label class="font-medium">📁 Sélectionnez un dossier contenant les fichiers PDF :</label><br>
+        <input type="file" name="pdf_folder" webkitdirectory directory multiple required 
+          class="block mt-2 mb-4 w-full text-sm text-gray-700 dark:text-gray-300 
+          file:mr-4 file:py-2 file:px-4 file:rounded-full
+          file:border-0 file:text-sm file:font-semibold
+          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded transition">▶️ Lancer le traitement séquentiel</button>
+      </form>
+    </section>
+
+    <!-- Traitement Parallèle -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">2️⃣ <span>Traitement Parallèle des PDFs</span></h2>
+      <form action="/process_parallel" method="post" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
+        <label class="font-medium">📁 Sélectionnez un dossier contenant les fichiers PDF :</label><br>
+        <input type="file" name="pdf_folder" webkitdirectory directory multiple required 
+          class="block mt-2 mb-4 w-full text-sm text-gray-700 dark:text-gray-300 
+          file:mr-4 file:py-2 file:px-4 file:rounded-full
+          file:border-0 file:text-sm file:font-semibold
+          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded transition">⚙️ Lancer le traitement parallèle</button>
+      </form>
+    </section>
+
+    <!-- Enrichissement Excel -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">3️⃣ <span>Enrichissement Excel</span></h2>
+      
+      <form action="/enrichir_global_excel" method="post" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
+        <label class="font-medium">📄 Fichier pour enrichissement global :</label><br>
+        <input type="file" name="global_excel" accept=".xlsx" required 
+          class="block mt-2 mb-4 w-full text-sm text-gray-700 dark:text-gray-300 
+          file:mr-4 file:py-2 file:px-4 file:rounded-full
+          file:border-0 file:text-sm file:font-semibold
+          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded transition">📥 Générer résultat_complet.xlsx</button>
+      </form>
+
+      <form action="/enrichir_par_annee_excel" method="post" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
+        <label class="font-medium">📁 Fichier pour enrichissement par année :</label><br>
+        <input type="file" name="global_excel" accept=".xlsx" required 
+          class="block mt-2 mb-4 w-full text-sm text-gray-700 dark:text-gray-300 
+          file:mr-4 file:py-2 file:px-4 file:rounded-full
+          file:border-0 file:text-sm file:font-semibold
+          file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded transition">📂 Générer data_{année}.xlsx</button>
+      </form>
+    </section>
+
+    <!-- Journal des logs -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">📝 <span>Journal du traitement</span></h2>
+      <div id="log-output" class="bg-black text-green-300 p-4 rounded shadow h-72 overflow-y-auto">
+        <code></code>
+      </div>
     </section>
   </main>
+  <section class="text-center mb-6">
+  <form action="/restart" method="post" onsubmit="return confirm('Redémarrer l’application ?')">
+    <button type="submit"
+      class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition">
+      ❌ Redémarrer l’application
+    </button>
+  </form>
+</section>
 
+
+  <!-- Spinner -->
+  <div id="spinner" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div class="text-white text-xl font-bold animate-bounce">⏳ Traitement en cours...</div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-blue-900 text-white py-4 text-center mt-12">
+    <p class="text-sm">© 2025 - Interface de Traitement PDF & Excel. Tous droits réservés.</p>
+  </footer>
+
+  <!-- JS Theme & Log Streaming -->
   <script>
+    function stopAndRefresh() {
+      if (window.logEventSource) {
+        window.logEventSource.close(); // Stoppe le flux SSE
+        window.logEventSource = undefined;
+      }
+      location.reload(); // Recharge la page proprement
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      const button = document.getElementById("theme-toggle");
+      button.innerText = html.classList.contains('dark') ? '🌞 Mode clair' : '🌓 Mode sombre';
+    }
+
     const logElement = document.getElementById("log-output").querySelector("code");
+    const spinner = document.getElementById("spinner");
+
+    document.querySelectorAll("form").forEach(form => {
+      form.addEventListener("submit", () => {
+        spinner.classList.remove("hidden");
+        logElement.innerHTML += '<span class="text-yellow-300">⏳ Démarrage du traitement...</span><br>';
+      });
+    });
+
     if (typeof window.logEventSource === 'undefined') {
       window.logEventSource = new EventSource("/stream_logs");
+
       window.logEventSource.onmessage = function(event) {
         const line = event.data;
         const linkMatch = line.match(/\[(.*?)\]\((.*?)\)/);
         let formattedLine;
+
         if (linkMatch) {
           const text = linkMatch[1];
           const url = linkMatch[2];
-          formattedLine = `<a href="${url}" target="_blank" class="underline text-blue-400">${text}</a>`;
+          formattedLine = `<a href="${url}" target="_blank" class="text-blue-400 underline">${text}</a>`;
         } else {
           formattedLine = line.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
+
         logElement.innerHTML += formattedLine + "<br>";
         logElement.parentElement.scrollTop = logElement.parentElement.scrollHeight;
+
+        if (line.includes("✅")) {
+          spinner.classList.add("hidden");
+        }
       };
+
     }
   </script>
-
 </body>
 </html>

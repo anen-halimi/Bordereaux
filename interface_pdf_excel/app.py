@@ -17,19 +17,21 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # 🎯 File de log partagée
 log_queue = queue.Queue()
+processing_flags = {
+    "pdf": False,
+    "enrich": False
+}
 
 def log_streamer():
     """Générateur SSE pour le flux de logs."""
-    buffer = ""
     while True:
         try:
             message = log_queue.get(timeout=1)
-            buffer += message
-            if buffer.endswith("\n") or buffer.endswith("\r"):
-                yield f"data: {buffer.strip()}\n\n"
-                buffer = ""
+            # Nettoyage et émission immédiate
+            yield f"data: {message.strip()}\n\n"
         except queue.Empty:
             continue
+
 
 
 def make_logger():
@@ -108,7 +110,8 @@ def process_parallel_route():
             logger(f"❌ Erreur : {e}")
 
     threading.Thread(target=run).start()
-    return render_template("index.html", message="⏳ Traitement séquentiel en cours...")
+    return redirect(url_for('index', msg='enrich'))
+
 
 
 
@@ -140,7 +143,8 @@ def enrichir_excel_route():
 
     threading.Thread(target=run).start()
 
-    return render_template("index.html", message="⏳ Enrichissement en cours...")
+    return redirect(url_for('index', msg='enrich'))
+
 
 
 @app.route("/enrichir_global_excel", methods=["POST"])
@@ -166,7 +170,8 @@ def enrichir_global_route():
             logger(f"❌ Erreur enrichissement : {e}")
 
     threading.Thread(target=run).start()
-    return render_template("index.html", message="⏳ Enrichissement global en cours...")
+    return redirect(url_for('index', msg='enrich'))
+
 
 @app.route("/enrichir_par_annee_excel", methods=["POST"])
 def enrichir_par_annee_route():
@@ -194,6 +199,29 @@ def enrichir_par_annee_route():
 @app.route("/download_excel/<path:filename>")
 def download_excel(filename):
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
+
+import sys
+
+@app.route("/restart", methods=["POST"])
+def restart_app():
+    def delayed_restart():
+        time.sleep(1)
+        os.execv(sys.executable, ['python'] + sys.argv)
+
+    threading.Thread(target=delayed_restart).start()
+    # Renvoie une page HTML avec redirection automatique
+    return '''
+    <html>
+    <head>
+        <meta http-equiv="refresh" content="5;url=/" />
+    </head>
+    <body style="font-family: sans-serif; text-align: center; margin-top: 100px;">
+        🔁 Redémarrage en cours...<br>
+        Vous serez redirigé automatiquement dans 5 secondes.<br>
+        Si ce n’est pas le cas, <a href="/">cliquez ici</a>.
+    </body>
+    </html>
+    '''
 
 
 
