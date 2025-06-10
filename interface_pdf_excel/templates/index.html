@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Interface Traitement PDF & Excel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+  <header class="bg-blue-900 text-white py-6 shadow">
+    <h1 class="text-3xl font-bold text-center">🚆 Interface de Traitement des Fichiers PDF & Excel</h1>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    {% if message %}
+    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded">
+      <strong>{{ message }}</strong>
+    </div>
+    {% endif %}
+
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold text-blue-900 mb-4">1️⃣ Traitement Séquentiel des PDFs</h2>
+      <form action="/process_sequentiel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
+        <label class="block font-medium">Sélectionnez un dossier contenant les fichiers PDF :</label>
+        <input type="file" name="pdf_folder" webkitdirectory directory multiple required class="mt-2 mb-4 block w-full">
+        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded">▶️ Lancer le traitement séquentiel</button>
+      </form>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold text-blue-900 mb-4">2️⃣ Traitement Parallèle des PDFs</h2>
+      <form action="/process_parallel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
+        <label class="block font-medium">Sélectionnez un dossier contenant les fichiers PDF :</label>
+        <input type="file" name="pdf_folder" webkitdirectory directory multiple required class="mt-2 mb-4 block w-full">
+        <button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white px-5 py-2 rounded">⚙️ Lancer le traitement parallèle</button>
+      </form>
+    </section>
+
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold text-blue-900 mb-4">3️⃣ Enrichissement Excel</h2>
+
+      <form action="/enrichir_global_excel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow mb-6">
+        <label class="block font-medium">Fichier pour enrichissement global :</label>
+        <input type="file" name="global_excel" accept=".xlsx" required class="mt-2 mb-4 block w-full">
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">📥 Générer résultat_complet.xlsx</button>
+      </form>
+
+      <form action="/enrichir_par_annee_excel" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
+        <label class="block font-medium">Fichier pour enrichissement par année :</label>
+        <input type="file" name="global_excel" accept=".xlsx" required class="mt-2 mb-4 block w-full">
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">📂 Générer data_{année}.xlsx</button>
+      </form>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-blue-900 mb-4">📝 Journal du traitement</h2>
+      <pre id="log-output" class="bg-black text-green-200 p-4 rounded h-72 overflow-y-auto"><code></code></pre>
+    </section>
+  </main>
+
+  <script>
+    const logElement = document.getElementById("log-output").querySelector("code");
+    if (typeof window.logEventSource === 'undefined') {
+      window.logEventSource = new EventSource("/stream_logs");
+      window.logEventSource.onmessage = function(event) {
+        const line = event.data;
+        const linkMatch = line.match(/\[(.*?)\]\((.*?)\)/);
+        let formattedLine;
+        if (linkMatch) {
+          const text = linkMatch[1];
+          const url = linkMatch[2];
+          formattedLine = `<a href="${url}" target="_blank" class="underline text-blue-400">${text}</a>`;
+        } else {
+          formattedLine = line.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+        logElement.innerHTML += formattedLine + "<br>";
+        logElement.parentElement.scrollTop = logElement.parentElement.scrollHeight;
+      };
+    }
+  </script>
+
+</body>
+</html>
